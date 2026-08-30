@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Social X</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCMXmdrKjGYxclJZeDLiUvlsnyGRQGkr-g",
+      authDomain: "socialx-arsh.firebaseapp.com",
+      projectId: "socialx-arsh",
+      storageBucket: "socialx-arsh.firebasestorage.app",
+      messagingSenderId: "627442305563",
+      appId: "1:627442305563:web:5e122694f613570e0746be",
+      measurementId: "G-FV5FWQW6JX"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="logo">
+    Social<span>X</span>
+  </div>
+
+  <div class="search">
+    🔍
+    <input
+      id="search"
+      type="text"
+      placeholder="Social Search"
+    >
+  </div>
+
+  <button id="darkMode" class="topIcon">
+    🌕
+  </button>
+
+</header>
+
+
+<div class="layout">
+
+  <!-- LEFT MENU -->
+
+  <aside class="sidebar">
+
+    <button class="menu active" data-page="home">
+      🛖 <span>Home</span>
+    </button>
+
+    <button class="menu" data-page="explore">
+      🔎 <span>Explore</span>
+    </button>
+
+    <button class="menu" data-page="create">
+      🎥 <span>Create</span>
+    </button>
+
+    <button class="menu" data-page="notifications">
+      📌 <span>Notifications</span>
+    </button>
+
+    <button class="menu" data-page="messages">
+      💬 <span>Messages</span>
+    </button>
+
+    <button class="menu" data-page="profile">
+      👨 <span>Profile</span>
+    </button>
+
+    <button class="menu" data-page="settings">
+      ⚙️ <span>Settings</span>
+    </button>
+
+  </aside>
+
+
+  <!-- MAIN CONTENT -->
+
+  <main id="content"></main>
+
+
+  <!-- RIGHT SIDE -->
+
+  <aside class="right">
+
+    <div class="card emptyRight">
+
+      <div class="bigLogo">
+        X
+      </div>
+
+      <h2>Welcome to Social X</h2>
+
+      <p>
+        Something Big. ✨
+      </p>
+
+      <button
+        class="primary"
+        onclick="openLogin()"
+      >
+        🔐 Login / Sign Up
+      </button>
+
+    </div>
+
+  </aside>
+
+</div>
+
+
+<!-- LOGIN -->
+
+<div id="loginModal" class="modal hidden">
+
+  <div class="modalBox">
+
+    <button
+      class="close"
+      onclick="closeLogin()"
+    >
+      ×
+    </button>
+
+    <div class="bigLogo">
+      🎭
+    </div>
+
+    <h2>Welcome to Social X 👋</h2>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="📧 Email"
+    >
+
+    <input
+      id="password"
+      type="password"
+      placeholder="🔑 Password"
+    >
+
+    <button
+      class="primary full"
+      onclick="login()"
+    >
+      Login
+    </button>
+
+    <button
+      class="secondary full"
+      onclick="signup()"
+    >
+      ✨ Create Account
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- CREATE POST -->
+
+<div id="postModal" class="modal hidden">
+
+  <div class="modalBox">
+
+    <button
+      class="close"
+      onclick="closePost()"
+    >
+      ×
+    </button>
+
+    <h2>➕ Create Post</h2>
+
+    <input
+    id="postFile"
+    type="file"
+    accept="image/*,video/*"
+    class="primary full"
+>
+    📸 Select Photo / Video
+</label>
+
+<input
+    id="postFile"
+    type="file"
+    accept="image/*,video/*"
+    style="display:none;"
+>
+
+    <textarea
+      id="postText"
+      placeholder="What's on your mind? Use Ideas To Gain Aura💀 ✨"
+    ></textarea>
+
+    <input
+      id="location"
+      type="text"
+      placeholder="🌏 Add location"
+    >
+
+    <input
+      id="hashtags"
+      type="text"
+      placeholder="# Hashtags"
+    >
+
+    <button
+      class="primary full"
+      onclick="createPost()"
+    >
+      🚀 Post
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- APP JAVASCRIPT -->
+
+<script src="app.js"></script>
+
+</body>
+</html>
