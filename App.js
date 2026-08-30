@@ -1,3 +1,4 @@
+alert("Social X JavaScript Loaded!");
 /* =========================
    SOCIAL X
    Firebase Connected
