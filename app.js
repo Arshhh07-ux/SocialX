@@ -1,6 +1,7 @@
 /* =====================================================
-   SOCIAL X
-   AUTH + PROFILE + REAL-TIME MESSAGES
+   SOCIAL X - FREE VERSION
+   ACCOUNT + PROFILE + TEXT POSTS + MESSAGES
+   NO FIREBASE STORAGE
    ===================================================== */
 
 let currentPage = "home";
@@ -15,18 +16,21 @@ const postModal = document.getElementById("postModal");
 
 
 /* =====================================================
-   HELPERS
+   HELPER
    ===================================================== */
 
-function escapeHTML(text) {
+function clean(text) {
     const div = document.createElement("div");
     div.textContent = text || "";
     return div.innerHTML;
 }
 
-function usernameToAuthEmail(username) {
-    return username.toLowerCase().replace(/[^a-z0-9_]/g, "") +
-        "@socialx.app";
+function authEmail(username) {
+    return username.toLowerCase() + "@socialx.local";
+}
+
+function chatId(a, b) {
+    return [a, b].sort().join("_");
 }
 
 
@@ -45,7 +49,7 @@ function showHome() {
             <div class="createCard">
 
                 <div class="avatar">
-                    👤
+                    ${user ? "👤" : "?"}
                 </div>
 
                 <button
@@ -53,7 +57,7 @@ function showHome() {
                     onclick="${user ? "openPost()" : "openLogin()"}">
 
                     ${user
-                        ? "✨ Create your first post..."
+                        ? "✨ What's on your mind?"
                         : "🔐 Login to create a post..."}
 
                 </button>
@@ -62,30 +66,117 @@ function showHome() {
 
         </div>
 
-        <div class="card empty">
+        <div
+            id="posts"
+            class="card empty">
 
-            <div class="emptyIcon">🎬</div>
+            <div class="emptyIcon">📝</div>
 
-            <h2>No Posts Yet 😏</h2>
+            <h2>Social X</h2>
 
-            <p>
-                ${user
-                    ? "Create your first post and share it with Social X."
-                    : "Login to create your first post."}
-            </p>
-
-            <button
-                class="primary"
-                onclick="${user ? "openPost()" : "openLogin()"}">
-
-                ${user
-                    ? "➕ Create Post"
-                    : "✨ Login / Sign Up"}
-
-            </button>
+            <p>Loading posts...</p>
 
         </div>
     `;
+
+    loadPosts();
+}
+
+
+/* =====================================================
+   LOAD TEXT POSTS
+   ===================================================== */
+
+function loadPosts() {
+
+    firebase.firestore()
+        .collection("posts")
+        .orderBy("createdAt", "desc")
+        .limit(50)
+        .onSnapshot(snapshot => {
+
+            const box =
+                document.getElementById("posts");
+
+            if (!box) return;
+
+            if (snapshot.empty) {
+
+                box.innerHTML = `
+
+                    <div class="emptyIcon">📝</div>
+
+                    <h2>No Posts Yet</h2>
+
+                    <p>
+                        Be the first person to post on Social X.
+                    </p>
+
+                `;
+
+                return;
+            }
+
+            let html = "";
+
+            snapshot.forEach(doc => {
+
+                const post = doc.data();
+
+                let time = "";
+
+                if (post.createdAt) {
+
+                    time =
+                        post.createdAt
+                        .toDate()
+                        .toLocaleString();
+                }
+
+                html += `
+
+                    <div
+                        style="
+                            text-align:left;
+                            border-bottom:1px solid #eee;
+                            padding:15px 0;
+                        ">
+
+                        <strong>
+                            @${clean(post.username || "user")}
+                        </strong>
+
+                        <p>
+                            ${clean(post.text)}
+                        </p>
+
+                        <small>
+                            ${time}
+                        </small>
+
+                    </div>
+                `;
+            });
+
+            box.classList.remove("empty");
+
+            box.innerHTML = html;
+
+        }, error => {
+
+            console.error(error);
+
+            const box =
+                document.getElementById("posts");
+
+            if (box) {
+
+                box.innerHTML = `
+                    <h3>Unable to load posts.</h3>
+                    <p>${clean(error.message)}</p>
+                `;
+            }
+        });
 }
 
 
@@ -96,44 +187,52 @@ function showHome() {
 function showExplore() {
 
     content.innerHTML = `
+
         <div class="card">
+
             <h2>🔎 Explore</h2>
-            <p>Find real Social X users.</p>
 
             <input
                 id="userSearch"
-                class="createInput"
-                style="width:100%; border:none;"
-                placeholder="🔍 Search username..."
+                type="text"
+                placeholder="Search username..."
+                style="
+                    width:100%;
+                    padding:12px;
+                    margin-top:15px;
+                    border:1px solid #ddd;
+                    border-radius:20px;
+                "
                 oninput="searchUsers(this.value)"
             >
 
             <div id="userResults"></div>
+
         </div>
     `;
 }
 
 
-/* =====================================================
-   USER SEARCH
-   ===================================================== */
-
 async function searchUsers(value) {
 
-    const results = document.getElementById("userResults");
+    const box =
+        document.getElementById("userResults");
 
-    if (!results) return;
+    if (!box) return;
 
     value = value.trim().toLowerCase();
 
     if (!value) {
-        results.innerHTML = "";
+
+        box.innerHTML = "";
+
         return;
     }
 
     try {
 
-        const snapshot = await firebase.firestore()
+        const snapshot =
+            await firebase.firestore()
             .collection("users")
             .orderBy("usernameLower")
             .startAt(value)
@@ -143,12 +242,8 @@ async function searchUsers(value) {
 
         if (snapshot.empty) {
 
-            results.innerHTML = `
-                <div class="empty">
-                    <div class="emptyIcon">🔎</div>
-                    <p>No users found.</p>
-                </div>
-            `;
+            box.innerHTML =
+                "<p>No users found.</p>";
 
             return;
         }
@@ -157,42 +252,48 @@ async function searchUsers(value) {
 
         snapshot.forEach(doc => {
 
-            const user = doc.data();
+            const data = doc.data();
 
             html += `
 
                 <div
                     class="card"
-                    style="display:flex;align-items:center;gap:12px;cursor:pointer;"
+                    style="
+                        display:flex;
+                        align-items:center;
+                        gap:12px;
+                        cursor:pointer;
+                    "
                     onclick="openChat('${doc.id}')">
 
                     <div class="avatar">
-                        ${user.photoURL
-                            ? `<img src="${escapeHTML(user.photoURL)}"
-                               style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-                            : "👤"}
+                        👤
                     </div>
 
                     <div>
-                        <strong>${escapeHTML(user.username)}</strong>
-                        <div style="font-size:13px;color:#777;">
-                            Tap to message
+
+                        <strong>
+                            @${clean(data.username)}
+                        </strong>
+
+                        <div>
+                            💬 Message
                         </div>
+
                     </div>
 
                 </div>
             `;
         });
 
-        results.innerHTML = html;
+        box.innerHTML = html;
 
     } catch (error) {
 
         console.error(error);
 
-        results.innerHTML = `
-            <p>Unable to search users.</p>
-        `;
+        box.innerHTML =
+            "<p>Search failed.</p>";
     }
 }
 
@@ -202,6 +303,7 @@ async function searchUsers(value) {
    ===================================================== */
 
 function showCreate() {
+
     openPost();
 }
 
@@ -213,10 +315,17 @@ function showCreate() {
 function showNotifications() {
 
     content.innerHTML = `
+
         <div class="card empty">
+
             <div class="emptyIcon">🔔</div>
+
             <h2>No notifications</h2>
-            <p>Your notifications will appear here.</p>
+
+            <p>
+                Notifications will appear here.
+            </p>
+
         </div>
     `;
 }
@@ -228,18 +337,22 @@ function showNotifications() {
 
 function showMessages() {
 
-    const user = firebase.auth().currentUser;
+    const user =
+        firebase.auth().currentUser;
 
     if (!user) {
 
         content.innerHTML = `
+
             <div class="card empty">
 
                 <div class="emptyIcon">🔐</div>
 
                 <h2>Login Required</h2>
 
-                <p>Login to use Social X Messages.</p>
+                <p>
+                    Login to use Messages.
+                </p>
 
                 <button
                     class="primary"
@@ -262,14 +375,20 @@ function showMessages() {
             <h2>💬 Messages</h2>
 
             <input
-                id="messageUserSearch"
-                class="createInput"
-                style="width:100%;border:none;margin-top:12px;"
-                placeholder="🔍 Search a user to chat..."
+                id="messageSearch"
+                type="text"
+                placeholder="🔎 Search username..."
+                style="
+                    width:100%;
+                    padding:12px;
+                    margin-top:15px;
+                    border:1px solid #ddd;
+                    border-radius:20px;
+                "
                 oninput="searchMessageUsers(this.value)"
             >
 
-            <div id="messageUserResults"></div>
+            <div id="messageUsers"></div>
 
         </div>
 
@@ -284,20 +403,25 @@ function showMessages() {
 
 async function searchMessageUsers(value) {
 
-    const box = document.getElementById("messageUserResults");
+    const box =
+        document.getElementById("messageUsers");
 
     if (!box) return;
 
-    value = value.trim().toLowerCase();
+    value =
+        value.trim().toLowerCase();
 
     if (!value) {
+
         box.innerHTML = "";
+
         return;
     }
 
     try {
 
-        const snapshot = await firebase.firestore()
+        const snapshot =
+            await firebase.firestore()
             .collection("users")
             .orderBy("usernameLower")
             .startAt(value)
@@ -307,9 +431,8 @@ async function searchMessageUsers(value) {
 
         if (snapshot.empty) {
 
-            box.innerHTML = `
-                <p style="padding:15px;">No users found.</p>
-            `;
+            box.innerHTML =
+                "<p>No users found.</p>";
 
             return;
         }
@@ -324,21 +447,28 @@ async function searchMessageUsers(value) {
 
                 <div
                     class="card"
-                    style="display:flex;align-items:center;gap:12px;cursor:pointer;"
+                    style="
+                        display:flex;
+                        gap:12px;
+                        align-items:center;
+                        cursor:pointer;
+                    "
                     onclick="openChat('${doc.id}')">
 
                     <div class="avatar">
-                        ${data.photoURL
-                            ? `<img src="${escapeHTML(data.photoURL)}"
-                               style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-                            : "👤"}
+                        👤
                     </div>
 
                     <div>
-                        <strong>${escapeHTML(data.username)}</strong>
-                        <div style="font-size:13px;color:#777;">
-                            Message
+
+                        <strong>
+                            @${clean(data.username)}
+                        </strong>
+
+                        <div>
+                            Tap to message
                         </div>
+
                     </div>
 
                 </div>
@@ -351,22 +481,9 @@ async function searchMessageUsers(value) {
 
         console.error(error);
 
-        box.innerHTML = `
-            <p>Search failed.</p>
-        `;
+        box.innerHTML =
+            "<p>Unable to search users.</p>";
     }
-}
-
-
-/* =====================================================
-   CHAT ID
-   ===================================================== */
-
-function getChatId(uid1, uid2) {
-
-    return [uid1, uid2]
-        .sort()
-        .join("_");
 }
 
 
@@ -376,14 +493,17 @@ function getChatId(uid1, uid2) {
 
 async function openChat(otherUid) {
 
-    const currentUser = firebase.auth().currentUser;
+    const me =
+        firebase.auth().currentUser;
 
-    if (!currentUser) {
+    if (!me) {
+
         openLogin();
+
         return;
     }
 
-    if (otherUid === currentUser.uid) {
+    if (me.uid === otherUid) {
 
         alert("You cannot message yourself.");
 
@@ -392,25 +512,28 @@ async function openChat(otherUid) {
 
     currentChatUser = otherUid;
 
-    const userDoc = await firebase.firestore()
+    const doc =
+        await firebase.firestore()
         .collection("users")
         .doc(otherUid)
         .get();
 
-    if (!userDoc.exists) {
+    if (!doc.exists) {
 
         alert("User not found.");
 
         return;
     }
 
-    const otherUser = userDoc.data();
+    const other =
+        doc.data();
 
-    const chatArea = document.getElementById("chatArea");
+    const area =
+        document.getElementById("chatArea");
 
-    if (!chatArea) return;
+    if (!area) return;
 
-    chatArea.innerHTML = `
+    area.innerHTML = `
 
         <div
             class="card"
@@ -418,58 +541,48 @@ async function openChat(otherUid) {
 
             <div
                 style="
-                    padding:14px;
+                    padding:15px;
                     border-bottom:1px solid #ddd;
-                    display:flex;
-                    align-items:center;
-                    gap:10px;
                 ">
 
-                <div class="avatar">
+                <strong>
+                    👤 @${clean(other.username)}
+                </strong>
 
-                    ${otherUser.photoURL
-                        ? `<img src="${escapeHTML(otherUser.photoURL)}"
-                           style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-                        : "👤"}
+                <div
+                    id="chatStatus"
+                    style="
+                        font-size:12px;
+                        color:#777;
+                    ">
 
-                </div>
-
-                <div>
-
-                    <strong>
-                        ${escapeHTML(otherUser.username)}
-                    </strong>
-
-                    <div
-                        id="onlineStatus"
-                        style="font-size:12px;color:#777;">
-
-                        Checking status...
-
-                    </div>
+                    Checking status...
 
                 </div>
 
             </div>
 
+
             <div
                 id="messagesList"
                 style="
-                    height:55vh;
+                    height:50vh;
                     overflow-y:auto;
                     padding:15px;
                 ">
             </div>
 
+
             <div
                 id="typingIndicator"
                 style="
-                    padding:0 15px 5px;
+                    min-height:20px;
+                    padding:0 15px;
                     font-size:13px;
                     color:#777;
-                    min-height:20px;
                 ">
             </div>
+
 
             <div
                 style="
@@ -487,11 +600,11 @@ async function openChat(otherUid) {
                         flex:1;
                         border:1px solid #ddd;
                         border-radius:22px;
-                        padding:12px 15px;
+                        padding:12px;
                         outline:none;
                     "
-                    oninput="handleTyping()"
-                    onkeydown="handleMessageKey(event)"
+                    oninput="typing()"
+                    onkeydown="messageKey(event)"
                 >
 
                 <button
@@ -507,17 +620,17 @@ async function openChat(otherUid) {
         </div>
     `;
 
-    listenToMessages(currentUser.uid, otherUid);
+    listenMessages(
+        me.uid,
+        otherUid
+    );
 
-    listenToTyping(currentUser.uid, otherUid);
+    listenTyping(
+        me.uid,
+        otherUid
+    );
 
-    listenToPresence(otherUid);
-
-    markMessagesSeen(currentUser.uid, otherUid);
-
-    const input = document.getElementById("messageInput");
-
-    if (input) input.focus();
+    listenStatus(otherUid);
 }
 
 
@@ -527,97 +640,94 @@ async function openChat(otherUid) {
 
 async function sendMessage() {
 
-    const currentUser = firebase.auth().currentUser;
+    const me =
+        firebase.auth().currentUser;
 
-    const input = document.getElementById("messageInput");
+    const input =
+        document.getElementById(
+            "messageInput"
+        );
 
-    if (!currentUser || !currentChatUser || !input) return;
+    if (!me || !currentChatUser || !input)
+        return;
 
-    const text = input.value.trim();
+    const text =
+        input.value.trim();
 
     if (!text) return;
 
-    input.disabled = true;
-
     try {
 
-        const currentUserDoc = await firebase.firestore()
+        const meDoc =
+            await firebase.firestore()
             .collection("users")
-            .doc(currentUser.uid)
+            .doc(me.uid)
             .get();
 
-        const senderData = currentUserDoc.data() || {};
-
-        const chatId =
-            getChatId(currentUser.uid, currentChatUser);
+        const myData =
+            meDoc.data() || {};
 
         await firebase.firestore()
             .collection("messages")
             .add({
 
-                chatId: chatId,
+                chatId:
+                    chatId(
+                        me.uid,
+                        currentChatUser
+                    ),
 
-                senderId: currentUser.uid,
+                senderId:
+                    me.uid,
 
-                receiverId: currentChatUser,
+                receiverId:
+                    currentChatUser,
 
                 senderUsername:
-                    senderData.username || "User",
+                    myData.username || "User",
 
-                text: text,
+                text:
+                    text,
 
-                delivered: false,
+                delivered:
+                    false,
 
-                seen: false,
+                seen:
+                    false,
 
                 createdAt:
-                    firebase.firestore.FieldValue.serverTimestamp(),
+                    firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
 
-                seenAt: null,
+                deliveredAt:
+                    null,
 
-                deliveredAt: null
-
+                seenAt:
+                    null
             });
 
         input.value = "";
 
-        await setTyping(false);
+        setTyping(false);
 
     } catch (error) {
 
         console.error(error);
 
-        alert("Message could not be sent.");
-
-    } finally {
-
-        input.disabled = false;
-
-        input.focus();
+        alert(
+            "Message failed: " +
+            error.message
+        );
     }
 }
 
 
 /* =====================================================
-   ENTER TO SEND
+   MESSAGE LISTENER
    ===================================================== */
 
-function handleMessageKey(event) {
-
-    if (event.key === "Enter") {
-
-        event.preventDefault();
-
-        sendMessage();
-    }
-}
-
-
-/* =====================================================
-   REAL-TIME MESSAGES
-   ===================================================== */
-
-function listenToMessages(myUid, otherUid) {
+function listenMessages(me, other) {
 
     if (unsubscribeMessages) {
 
@@ -626,60 +736,63 @@ function listenToMessages(myUid, otherUid) {
         unsubscribeMessages = null;
     }
 
-    const chatId = getChatId(myUid, otherUid);
+    const id =
+        chatId(me, other);
 
     unsubscribeMessages =
         firebase.firestore()
         .collection("messages")
-        .where("chatId", "==", chatId)
+        .where("chatId", "==", id)
         .orderBy("createdAt", "asc")
-        .onSnapshot(async snapshot => {
+        .onSnapshot(snapshot => {
 
             const list =
-                document.getElementById("messagesList");
+                document.getElementById(
+                    "messagesList"
+                );
 
             if (!list) return;
 
             let html = "";
 
-            const batch =
-                firebase.firestore().batch();
-
-            let needsUpdate = false;
-
             snapshot.forEach(doc => {
 
-                const message = doc.data();
+                const msg =
+                    doc.data();
 
                 const mine =
-                    message.senderId === myUid;
+                    msg.senderId === me;
 
-                const timestamp =
-                    message.createdAt
-                    ? message.createdAt.toDate()
-                    : new Date();
+                let time = "";
 
-                const time =
-                    timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    });
+                if (msg.createdAt) {
+
+                    time =
+                        msg.createdAt
+                        .toDate()
+                        .toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        });
+                }
 
                 let status = "";
 
                 if (mine) {
 
-                    if (message.seen) {
+                    if (msg.seen) {
 
-                        status = `✓✓ Seen`;
+                        status = " · ✓✓ Seen";
 
-                    } else if (message.delivered) {
+                    } else if (msg.delivered) {
 
-                        status = `✓✓ Delivered`;
+                        status =
+                            " · ✓✓ Delivered";
 
                     } else {
 
-                        status = `✓ Sent`;
+                        status =
+                            " · ✓ Sent";
                     }
                 }
 
@@ -688,7 +801,10 @@ function listenToMessages(myUid, otherUid) {
                     <div
                         style="
                             display:flex;
-                            justify-content:${mine ? "flex-end" : "flex-start"};
+                            justify-content:
+                                ${mine
+                                    ? "flex-end"
+                                    : "flex-start"};
                             margin:8px 0;
                         ">
 
@@ -697,13 +813,17 @@ function listenToMessages(myUid, otherUid) {
                                 max-width:75%;
                                 padding:10px 13px;
                                 border-radius:16px;
-                                background:${mine ? "#111" : "#f0f0f0"};
-                                color:${mine ? "white" : "#111"};
+                                background:
+                                    ${mine
+                                        ? "#111"
+                                        : "#eeeeee"};
+                                color:
+                                    ${mine
+                                        ? "white"
+                                        : "#111"};
                             ">
 
-                            <div>
-                                ${escapeHTML(message.text)}
-                            </div>
+                            ${clean(msg.text)}
 
                             <div
                                 style="
@@ -714,7 +834,7 @@ function listenToMessages(myUid, otherUid) {
                                 ">
 
                                 ${time}
-                                ${mine ? " · " + status : ""}
+                                ${status}
 
                             </div>
 
@@ -722,63 +842,39 @@ function listenToMessages(myUid, otherUid) {
 
                     </div>
                 `;
-
-                if (
-                    message.receiverId === myUid &&
-                    !message.delivered
-                ) {
-
-                    batch.update(
-                        doc.ref,
-                        {
-                            delivered: true,
-                            deliveredAt:
-                                firebase.firestore.FieldValue.serverTimestamp()
-                        }
-                    );
-
-                    needsUpdate = true;
-                }
             });
 
             list.innerHTML =
                 html ||
-                `<p style="text-align:center;color:#777;">
-                    No messages yet. Say hello! 👋
+                `<p style="text-align:center;">
+                    No messages yet 👋
                 </p>`;
 
-            list.scrollTop = list.scrollHeight;
+            list.scrollTop =
+                list.scrollHeight;
 
-            if (needsUpdate) {
-
-                try {
-                    await batch.commit();
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-
-            markMessagesSeen(myUid, otherUid);
+            markSeen(me, other);
 
         });
 }
 
 
 /* =====================================================
-   MARK SEEN
+   SEEN
    ===================================================== */
 
-async function markMessagesSeen(myUid, otherUid) {
+async function markSeen(me, other) {
 
-    const chatId = getChatId(myUid, otherUid);
+    const id =
+        chatId(me, other);
 
     try {
 
         const snapshot =
             await firebase.firestore()
             .collection("messages")
-            .where("chatId", "==", chatId)
-            .where("receiverId", "==", myUid)
+            .where("chatId", "==", id)
+            .where("receiverId", "==", me)
             .where("seen", "==", false)
             .get();
 
@@ -795,17 +891,18 @@ async function markMessagesSeen(myUid, otherUid) {
                     seen: true,
                     delivered: true,
                     seenAt:
-                        firebase.firestore.FieldValue.serverTimestamp()
+                        firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
                 }
             );
-
         });
 
         await batch.commit();
 
     } catch (error) {
 
-        console.error("Seen error:", error);
+        console.error(error);
     }
 }
 
@@ -814,31 +911,31 @@ async function markMessagesSeen(myUid, otherUid) {
    TYPING
    ===================================================== */
 
-function handleTyping() {
+function typing() {
 
     setTyping(true);
 
     clearTimeout(typingTimer);
 
-    typingTimer = setTimeout(
-        function() {
-            setTyping(false);
-        },
-        1500
-    );
+    typingTimer =
+        setTimeout(
+            () => setTyping(false),
+            1500
+        );
 }
 
 
-async function setTyping(isTyping) {
+async function setTyping(value) {
 
-    const currentUser =
+    const me =
         firebase.auth().currentUser;
 
-    if (!currentUser || !currentChatUser) return;
+    if (!me || !currentChatUser)
+        return;
 
-    const chatId =
-        getChatId(
-            currentUser.uid,
+    const id =
+        chatId(
+            me.uid,
             currentChatUser
         );
 
@@ -846,1042 +943,453 @@ async function setTyping(isTyping) {
 
         await firebase.firestore()
             .collection("typing")
-            .doc(chatId)
+            .doc(id)
             .set({
 
-                [currentUser.uid]: isTyping,
+                [me.uid]:
+    value
 
-                updatedAt:
-                    firebase.firestore.FieldValue.serverTimestamp()
-
-            }, { merge: true });
+            }, {
+                merge: true
+            });
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Typing error:",
+            error
+        );
     }
 }
 
 
-function listenToTyping(myUid, otherUid) {
+/* =========================
+   LISTEN TYPING
+========================= */
 
-    if (unsubscribeTyping) {
+function listenTyping() {
 
-        unsubscribeTyping();
+    const me =
+        firebase.auth().currentUser;
 
-        unsubscribeTyping = null;
-    }
+    if (!me || !currentChatUser)
+        return;
 
-    const chatId =
-        getChatId(myUid, otherUid);
+    const id =
+        chatId(
+            me.uid,
+            currentChatUser
+        );
 
-    unsubscribeTyping =
-        firebase.firestore()
+    firebase.firestore()
         .collection("typing")
-        .doc(chatId)
-        .onSnapshot(doc => {
+        .doc(id)
+        .onSnapshot(snapshot => {
 
             const data =
-                doc.exists ? doc.data() : {};
+                snapshot.data() || {};
 
-            const indicator =
+            const otherUser =
+                currentChatUser.uid;
+
+            const typingStatus =
+                data[otherUser];
+
+            const typingElement =
                 document.getElementById(
-                    "typingIndicator"
+                    "typing"
                 );
 
-            if (!indicator) return;
+            if (!typingElement)
+                return;
 
-            indicator.innerText =
-                data[otherUid]
-                    ? "Typing..."
-                    : "";
+            if (
+                typingStatus === true
+            ) {
+
+                typingElement.innerText =
+                    "typing...";
+
+                typingElement.style.display =
+                    "block";
+
+            } else {
+
+                typingElement.innerText =
+                    "";
+
+                typingElement.style.display =
+                    "none";
+            }
 
         });
 }
 
 
-/* =====================================================
-   ONLINE / OFFLINE
-   ===================================================== */
+/* =========================
+   MESSAGE INPUT
+========================= */
 
-function setPresence() {
+function setupMessageInput() {
 
-    const user =
-        firebase.auth().currentUser;
+    const input =
+        document.getElementById(
+            "messageInput"
+        );
 
-    if (!user) return;
+    if (!input)
+        return;
 
-    firebase.firestore()
-        .collection("users")
-        .doc(user.uid)
-        .set({
-
-            online: true,
-
-            lastSeen:
-                firebase.firestore.FieldValue.serverTimestamp()
-
-        }, { merge: true });
-
-    window.addEventListener(
-        "beforeunload",
+    input.addEventListener(
+        "input",
         function() {
 
-            firebase.firestore()
-                .collection("users")
-                .doc(user.uid)
-                .set({
+            if (
+                this.value.trim()
+            ) {
 
-                    online: false,
+                typing();
 
-                    lastSeen:
-                        firebase.firestore.FieldValue.serverTimestamp()
+            } else {
 
-                }, { merge: true });
+                setTyping(false);
+
+            }
+
+        }
+    );
+
+    input.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
+
+                event.preventDefault();
+
+                sendMessage();
+
+            }
 
         }
     );
 }
 
 
-function listenToPresence(otherUid) {
+/* =========================
+   END TYPING
+========================= */
+/* =========================
+   SEND MESSAGE
+========================= */
+
+async function sendMessage() {
+
+    const me =
+        firebase.auth().currentUser;
+
+    if (!me || !currentChatUser)
+        return;
+
+    const input =
+        document.getElementById(
+            "messageInput"
+        );
+
+    if (!input)
+        return;
+
+    const text =
+        input.value.trim();
+
+    if (!text)
+        return;
+
+    try {
+
+        const id =
+            chatId(
+                me.uid,
+                currentChatUser
+            );
+
+        await firebase.firestore()
+            .collection("messages")
+            .add({
+
+                chatId: id,
+
+                senderId:
+                    me.uid,
+
+                receiverId:
+                    currentChatUser.uid,
+
+                text: text,
+
+                seen: false,
+
+                createdAt:
+                    firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+            });
+
+        input.value = "";
+
+        setTyping(false);
+
+    } catch (error) {
+
+        console.error(
+            "Send message error:",
+            error
+        );
+
+        alert(
+            "Message could not be sent."
+        );
+    }
+}
+
+
+/* =========================
+   MESSAGE LISTENER
+========================= */
+
+function listenMessages() {
+
+    const me =
+        firebase.auth().currentUser;
+
+    if (!me || !currentChatUser)
+        return;
+
+    const id =
+        chatId(
+            me.uid,
+            currentChatUser
+        );
 
     firebase.firestore()
-        .collection("users")
-        .doc(otherUid)
-        .onSnapshot(doc => {
+        .collection("messages")
+        .where(
+            "chatId",
+            "==",
+            id
+        )
+        .orderBy(
+            "createdAt",
+            "asc"
+        )
+        .onSnapshot(snapshot => {
 
-            const data = doc.data();
-
-            const status =
+            const chat =
                 document.getElementById(
-                    "onlineStatus"
+                    "chatMessages"
                 );
 
-            if (!status || !data) return;
+            if (!chat)
+                return;
 
-            if (data.online) {
+            chat.innerHTML = "";
 
-                status.innerText = "🟢 Online";
+            snapshot.forEach(doc => {
 
-            } else if (data.lastSeen) {
+                const message =
+                    doc.data();
 
-                const date =
-                    data.lastSeen.toDate();
+                const mine =
+                    message.senderId ===
+                    me.uid;
 
-                status.innerText =
-                    "Last seen " +
-                    date.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    });
+                const div =
+                    document.createElement(
+                        "div"
+                    );
 
-            } else {
+                div.className =
+                    mine
+                        ? "message me"
+                        : "message";
 
-                status.innerText = "Offline";
-            }
+                const time =
+                    message.createdAt
+                        ? message.createdAt
+                            .toDate()
+                            .toLocaleTimeString(
+                                [],
+                                {
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                }
+                            )
+                        : "";
+
+                div.innerHTML = `
+
+                    <div class="messageText">
+                        ${escapeHTML(
+                            message.text
+                        )}
+                    </div>
+
+                    <div class="messageTime">
+                        ${time}
+
+                        ${
+                            mine
+                                ? (
+                                    message.seen
+                                        ? " ✓✓ Seen"
+                                        : " ✓ Sent"
+                                  )
+                                : ""
+                        }
+                    </div>
+
+                `;
+
+                chat.appendChild(div);
+
+            });
+
+            chat.scrollTop =
+                chat.scrollHeight;
+
         });
 }
 
 
-/* =====================================================
-   PROFILE
-   ===================================================== */
+/* =========================
+   MARK SEEN
+========================= */
 
-async function showProfile() {
+async function markMessagesSeen() {
 
-    const user =
+    const me =
         firebase.auth().currentUser;
 
-    if (!user) {
-
-        content.innerHTML = `
-            <div class="card empty">
-
-                <div class="emptyIcon">👤</div>
-
-                <h2>Your Profile</h2>
-
-                <p>Please login or create an account.</p>
-
-                <button
-                    class="primary"
-                    onclick="openLogin()">
-
-                    🔐 Login / Sign Up
-
-                </button>
-
-            </div>
-        `;
-
+    if (!me || !currentChatUser)
         return;
-    }
 
-    const doc =
+    const id =
+        chatId(
+            me.uid,
+            currentChatUser
+        );
+
+    const snapshot =
         await firebase.firestore()
-        .collection("users")
-        .doc(user.uid)
+        .collection("messages")
+        .where(
+            "chatId",
+            "==",
+            id
+        )
+        .where(
+            "receiverId",
+            "==",
+            me.uid
+        )
+        .where(
+            "seen",
+            "==",
+            false
+        )
         .get();
 
-    const data =
-        doc.exists ? doc.data() : {};
-
-    content.innerHTML = `
-
-        <div class="card">
-
-            <div class="cover"></div>
-
-            <div class="profileInfo">
-
-                <div
-                    class="avatar profileAvatar"
-                    style="overflow:hidden;">
-
-                    ${data.photoURL
-                        ? `<img src="${escapeHTML(data.photoURL)}"
-                           style="width:100%;height:100%;object-fit:cover;">`
-                        : "👤"}
-
-                </div>
-
-                <h2>
-                    ${escapeHTML(data.username || "User")}
-                </h2>
-
-                <p>
-                    ${escapeHTML(data.bio || "No bio yet.")}
-                </p>
-
-                <button
-                    class="secondary"
-                    onclick="editProfile()">
-
-                    ✏️ Edit Profile
-
-                </button>
-
-                <button
-                    class="secondary"
-                    onclick="logout()">
-
-                    🚪 Logout
-
-                </button>
-
-            </div>
-
-        </div>
-
-        <div class="card empty">
-
-            <div class="emptyIcon">📸</div>
-
-            <h3>Your posts will appear here</h3>
-
-        </div>
-    `;
-}
-
-
-/* =====================================================
-   EDIT PROFILE
-   ===================================================== */
-
-async function editProfile() {
-
-    const user =
-        firebase.auth().currentUser;
-
-    if (!user) return;
-
-    const doc =
-        await firebase.firestore()
-        .collection("users")
-        .doc(user.uid)
-        .get();
-
-    const data =
-        doc.exists ? doc.data() : {};
-
-    content.innerHTML = `
-
-        <div class="card">
-
-            <h2>✏️ Edit Profile</h2>
-
-            <input
-                id="editUsername"
-                value="${escapeHTML(data.username || "")}"
-                placeholder="Username"
-                style="width:100%;padding:12px;margin:8px 0;"
-            >
-
-            <textarea
-                id="editBio"
-                placeholder="Bio"
-                style="width:100%;padding:12px;margin:8px 0;"
-            >${escapeHTML(data.bio || "")}</textarea>
-
-            <input
-                id="editPhoto"
-                value="${escapeHTML(data.photoURL || "")}"
-                placeholder="Profile picture URL (optional)"
-                style="width:100%;padding:12px;margin:8px 0;"
-            >
-
-            <button
-                class="primary"
-                onclick="saveProfile()">
-
-                💾 Save Profile
-
-            </button>
-
-        </div>
-    `;
-}
-
-
-async function saveProfile() {
-
-    const user =
-        firebase.auth().currentUser;
-
-    if (!user) return;
-
-    const username =
-        document.getElementById(
-            "editUsername"
-        ).value.trim();
-
-    const bio =
-        document.getElementById(
-            "editBio"
-        ).value.trim();
-
-    const photoURL =
-        document.getElementById(
-            "editPhoto"
-        ).value.trim();
-
-    if (!username) {
-
-        alert("Username is required.");
-
-        return;
-    }
-
-    try {
-
-        await firebase.firestore()
-            .collection("users")
-            .doc(user.uid)
-            .update({
-
-                username: username,
-
-                usernameLower:
-                    username.toLowerCase(),
-
-                bio: bio,
-
-                photoURL: photoURL
-
-            });
-
-        alert("Profile updated! 🎉");
-
-        showProfile();
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(error.message);
-    }
-}
-
-
-/* =====================================================
-   SETTINGS
-   ===================================================== */
-
-function showSettings() {
-
-    content.innerHTML = `
-
-        <div class="card">
-
-            <h2>⚙️ Settings</h2>
-
-            <hr>
-
-            <h3>👤 Account</h3>
-            <p>Profile information</p>
-            <p>🔑 Password & Security</p>
-            <p>📧 Email</p>
-
-            <hr>
-
-            <h3>🔒 Privacy</h3>
-            <p>Private Account</p>
-            <p>🚫 Blocked Accounts</p>
-            <p>🛡️ Security</p>
-
-            <hr>
-
-            <h3>🔔 Notifications</h3>
-            <p>Likes</p>
-            <p>Comments</p>
-            <p>Followers</p>
-
-            <hr>
-
-            <h3>🎨 Appearance</h3>
-
-            <button
-                class="secondary"
-                onclick="toggleDarkMode()">
-
-                🌙 Toggle Dark Mode
-
-            </button>
-
-            <hr>
-
-            <h3>ℹ️ About</h3>
-
-            <p>Social X</p>
-            <p>Version 1.0</p>
-
-        </div>
-    `;
-}
-
-
-/* =====================================================
-   PAGE ROUTER
-   ===================================================== */
-
-function render() {
-
-    if (currentPage === "home") {
-        showHome();
-    }
-
-    else if (currentPage === "explore") {
-        showExplore();
-    }
-
-    else if (currentPage === "create") {
-        showCreate();
-    }
-
-    else if (currentPage === "notifications") {
-        showNotifications();
-    }
-
-    else if (currentPage === "messages") {
-        showMessages();
-    }
-
-    else if (currentPage === "profile") {
-        showProfile();
-    }
-
-    else if (currentPage === "settings") {
-        showSettings();
-    }
-}
-
-
-/* =====================================================
-   NAVIGATION
-   ===================================================== */
-
-document
-    .querySelectorAll(".menu")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            function() {
-
-                currentPage =
-                    this.dataset.page;
-
-                document
-                    .querySelectorAll(".menu")
-                    .forEach(item => {
-
-                        item.classList.remove("active");
-
-                    });
-
-                this.classList.add("active");
-
-                render();
+    const batch =
+        firebase.firestore()
+        .batch();
+
+    snapshot.forEach(doc => {
+
+        batch.update(
+            doc.ref,
+            {
+                seen: true
             }
         );
+
     });
 
-
-/* =====================================================
-   LOGIN MODAL
-   ===================================================== */
-
-function openLogin() {
-
-    loginModal.classList.remove("hidden");
+    await batch.commit();
 }
 
 
-function closeLogin() {
+/* =========================
+   HTML SAFETY
+========================= */
 
-    loginModal.classList.add("hidden");
+function escapeHTML(text) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        text;
+
+    return div.innerHTML;
 }
 
 
-/* =====================================================
-   SIGNUP
-   ===================================================== */
+/* =========================
+   LOGOUT
+========================= */
 
-async function signup() {
+async function logout() {
 
-    const usernameInput =
-        document.getElementById("username");
+    const me =
+        firebase.auth().currentUser;
 
-    const emailInput =
-        document.getElementById("email");
-
-    const passwordInput =
-        document.getElementById("password");
-
-    const username =
-        usernameInput
-        ? usernameInput.value.trim()
-        : "";
-
-    const optionalEmail =
-        emailInput
-        ? emailInput.value.trim()
-        : "";
-
-    const password =
-        passwordInput
-        ? passwordInput.value
-        : "";
-
-    if (!username) {
-
-        alert("Username is required.");
-
-        return;
-    }
-
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-
-        alert(
-            "Username must be 3-20 characters and use only letters, numbers or _."
-        );
-
-        return;
-    }
-
-    if (!password || password.length < 6) {
-
-        alert(
-            "Password must be at least 6 characters."
-        );
-
-        return;
-    }
-
-    const usernameLower =
-        username.toLowerCase();
-
-    try {
-
-        const existing =
-            await firebase.firestore()
-            .collection("users")
-            .where(
-                "usernameLower",
-                "==",
-                usernameLower
-            )
-            .limit(1)
-            .get();
-
-        if (!existing.empty) {
-
-            alert("This username is already taken.");
-
-            return;
-        }
-
-        const authEmail =
-            usernameToAuthEmail(username);
-
-        const credential =
-            await firebase.auth()
-            .createUserWithEmailAndPassword(
-                authEmail,
-                password
-            );
+    if (me) {
 
         await firebase.firestore()
             .collection("users")
-            .doc(credential.user.uid)
-            .set({
-
-                uid: credential.user.uid,
-
-                username: username,
-
-                usernameLower: usernameLower,
-
-                optionalEmail: optionalEmail,
-
-                photoURL: "",
-
-                bio: "",
-
-                online: true,
-
-                createdAt:
-                    firebase.firestore.FieldValue.serverTimestamp(),
-
-                lastSeen:
-                    firebase.firestore.FieldValue.serverTimestamp()
-
-            });
-
-        alert("Account created successfully! 🎉");
-
-        closeLogin();
-
-        render();
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(error.message);
-    }
-}
-
-
-/* =====================================================
-   LOGIN
-   ===================================================== */
-
-async function login() {
-
-    const usernameInput =
-        document.getElementById("username");
-
-    const emailInput =
-        document.getElementById("email");
-
-    const passwordInput =
-        document.getElementById("password");
-
-    const username =
-        usernameInput
-        ? usernameInput.value.trim()
-        : "";
-
-    const password =
-        passwordInput
-        ? passwordInput.value
-        : "";
-
-    /*
-       Email field is NOT required.
-       Login uses username + password.
-    */
-
-    if (!username || !password) {
-
-        alert(
-            "Please enter username and password."
-        );
-
-        return;
-    }
-
-    try {
-
-        const snapshot =
-            await firebase.firestore()
-            .collection("users")
-            .where(
-                "usernameLower",
-                "==",
-                username.toLowerCase()
-            )
-            .limit(1)
-            .get();
-
-        if (snapshot.empty) {
-
-            alert("Username not found.");
-
-            return;
-        }
-
-        const userData =
-            snapshot.docs[0].data();
-
-        const authEmail =
-            usernameToAuthEmail(
-                userData.username
-            );
-
-        await firebase.auth()
-            .signInWithEmailAndPassword(
-                authEmail,
-                password
-            );
-
-        alert("Login successful! 🎉");
-
-        closeLogin();
-
-        render();
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert("Incorrect username or password.");
-    }
-}
-
-
-/* =====================================================
-   LOGOUT
-   ===================================================== */
-
-function logout() {
-
-    const user =
-        firebase.auth().currentUser;
-
-    if (user) {
-
-        firebase.firestore()
-            .collection("users")
-            .doc(user.uid)
+            .doc(me.uid)
             .set({
 
                 online: false,
 
                 lastSeen:
-                    firebase.firestore.FieldValue.serverTimestamp()
+                    firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
 
-            }, { merge: true });
+            }, {
+                merge: true
+            });
     }
 
-    firebase.auth()
-        .signOut()
-        .then(function() {
+    await firebase.auth()
+        .signOut();
 
-            alert("Logged out successfully.");
+    currentPage = "home";
 
-            render();
-
-        })
-        .catch(function(error) {
-
-            console.error(error);
-
-            alert(error.message);
-
-        });
+    render();
 }
 
 
-/* =====================================================
-   AUTH STATE
-   ===================================================== */
-
-firebase.auth().onAuthStateChanged(
-    function(user) {
-
-        if (user) {
-
-            console.log(
-                "Logged in:",
-                user.uid
-            );
-
-            setPresence();
-
-        } else {
-
-            console.log(
-                "No user logged in."
-            );
-        }
-
-        render();
-    }
-);
-
-
-/* =====================================================
-   CREATE POST
-   ===================================================== */
-
-function openPost() {
-
-    const user =
-        firebase.auth().currentUser;
-
-    if (!user) {
-
-        openLogin();
-
-        return;
-    }
-
-    postModal.classList.remove("hidden");
-}
-
-
-function closePost() {
-
-    postModal.classList.add("hidden");
-}
-
-
-function createPost() {
-
-    const user =
-        firebase.auth().currentUser;
-
-    if (!user) {
-
-        alert("Please login first.");
-
-        openLogin();
-
-        return;
-    }
-
-    const fileInput =
-        document.getElementById("postFile");
-
-    const text =
-        document.getElementById(
-            "postText"
-        ).value.trim();
-
-    const location =
-        document.getElementById(
-            "location"
-        ).value.trim();
-
-    const hashtags =
-        document.getElementById(
-            "hashtags"
-        ).value.trim();
-
-    const file =
-        fileInput.files[0];
-
-    if (!file) {
-
-        alert(
-            "Please select an image or video."
-        );
-
-        return;
-    }
-
-    const allowedTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "video/mp4",
-        "video/webm"
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-
-        alert(
-            "Please select a valid image or video."
-        );
-
-        return;
-    }
-
-    const maxSize =
-        50 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-
-        alert(
-            "File must be smaller than 50 MB."
-        );
-
-        return;
-    }
-
-    const button =
-        document.querySelector(
-            '#postModal button[onclick="createPost()"]'
-        );
-
-    if (button) {
-
-        button.disabled = true;
-
-        button.innerText =
-            "⏳ Uploading...";
-    }
-
-    const fileName =
-        Date.now() + "_" + file.name;
-
-    const storageRef =
-        firebase.storage()
-        .ref()
-        .child(
-            "posts/" +
-            user.uid +
-            "/" +
-            fileName
-        );
-
-    storageRef
-        .put(file)
-        .then(function(snapshot) {
-
-            return snapshot.ref.getDownloadURL();
-
-        })
-        .then(function(downloadURL) {
-
-            return firebase.firestore()
-                .collection("posts")
-                .add({
-
-                    uid: user.uid,
-
-                    text: text,
-
-                    location: location,
-
-                    hashtags: hashtags,
-
-                    mediaURL: downloadURL,
-
-                    mediaType:
-                        file.type.startsWith("video/")
-                            ? "video"
-                            : "image",
-
-                    createdAt:
-                        firebase.firestore.FieldValue.serverTimestamp()
-
-                });
-
-        })
-        .then(function() {
-
-            alert(
-                "Post uploaded successfully! 🎉"
-            );
-
-            document.getElementById(
-                "postFile"
-            ).value = "";
-
-            document.getElementById(
-                "postText"
-            ).value = "";
-
-            document.getElementById(
-                "location"
-            ).value = "";
-
-            document.getElementById(
-                "hashtags"
-            ).value = "";
-
-            closePost();
-
-            if (button) {
-
-                button.disabled = false;
-
-                button.innerText =
-                    "🚀 Post";
-            }
-
-        })
-        .catch(function(error) {
-
-            console.error(
-                "Post upload error:",
-                error
-            );
-
-            alert(
-                "Post upload failed: " +
-                error.message
-            );
-
-            if (button) {
-
-                button.disabled = false;
-
-                button.innerText =
-                    "🚀 Post";
-            }
-        });
-}
-
-
-/* =====================================================
+/* =========================
    DARK MODE
-   ===================================================== */
+========================= */
 
 function toggleDarkMode() {
 
-    document.body.classList.toggle("dark");
+    document.body
+        .classList
+        .toggle("dark");
 }
 
 
-/* =====================================================
-   SEARCH
-   ===================================================== */
-
-const searchBox =
-    document.getElementById("search");
-
-if (searchBox) {
-
-    searchBox.addEventListener(
-        "input",
-        function() {
-
-            console.log(
-                "Searching:",
-                this.value
-            );
-        }
-    );
-}
-
-
-/* =====================================================
-   START
-   ===================================================== */
+/* =========================
+   START APP
+========================= */
 
 render();
