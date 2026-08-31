@@ -97,12 +97,21 @@ textarea {
 
 /* LAYOUT */
 
-.layout {
-  max-width: 1200px;
+..layout {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 25px 15px;
 
-  margin: 25px auto;
+  display: grid;
 
-  padding: 0 15px;
+  grid-template-columns:
+    210px
+    1fr
+    260px;
+
+  gap: 25px;
+}
 
   display: grid;
 
@@ -564,9 +573,11 @@ body {
 
 @media (max-width: 650px) {
     .layout {
-        width: 100%;
-        margin: 0;
-        padding: 10px;
+  width: 100%;
+  display: block;
+  margin: 0;
+  padding: 10px;
+    }
     }
 
     .topbar {
