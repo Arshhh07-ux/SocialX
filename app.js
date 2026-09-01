@@ -1540,23 +1540,110 @@ async function signup() {
             .doc(result.user.uid)
             .set({
 
-                username:
-                    username,
+/* =========================
+   LOGIN & SIGN UP
+========================= */
 
-                usernameLower:
-                    username.toLowerCase(),
+function openLogin() {
+    loginModal.classList.remove("hidden");
+}
 
-                email:
-                    email,
+function closeLogin() {
+    loginModal.classList.add("hidden");
+}
 
-                online:
-                    true,
+async function login() {
+    const input = document.getElementById("loginInput").value.trim();
+    const password = document.getElementById("password").value;
 
-                createdAt:
-                    firebase.firestore
-                    .FieldValue
-                    .serverTimestamp()
+    if (!input || !password) {
+        alert("Please enter Username or Email and Password.");
+        return;
+    }
 
+    try {
+        let email = input;
+
+        if (!input.includes("@")) {
+            const snapshot = await firebase.firestore()
+                .collection("users")
+                .where("usernameLower", "==", input.toLowerCase())
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                alert("Username not found.");
+                return;
+            }
+
+            email = snapshot.docs[0].data().email;
+        }
+
+        await firebase.auth()
+            .signInWithEmailAndPassword(email, password);
+
+        closeLogin();
+
+        document.getElementById("loginInput").value = "";
+        document.getElementById("password").value = "";
+
+        render();
+
+    } catch (error) {
+        console.error(error);
+        alert("Login failed: " + error.message);
+    }
+}
+
+async function signup() {
+    const input = document.getElementById("loginInput").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!input || !password) {
+        alert("Please enter Username or Email and Password.");
+        return;
+    }
+
+    if (password.length < 6) {
+        alert("Password must be at least 6 characters.");
+        return;
+    }
+
+    try {
+        let username;
+        let email;
+
+        if (input.includes("@")) {
+            email = input;
+            username = input.split("@")[0];
+        } else {
+            username = input;
+            email = authEmail(username);
+        }
+
+        const usernameCheck = await firebase.firestore()
+            .collection("users")
+            .where("usernameLower", "==", username.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (!usernameCheck.empty) {
+            alert("Username already exists.");
+            return;
+        }
+
+        const result = await firebase.auth()
+            .createUserWithEmailAndPassword(email, password);
+
+        await firebase.firestore()
+            .collection("users")
+            .doc(result.user.uid)
+            .set({
+                username: username,
+                usernameLower: username.toLowerCase(),
+                email: email,
+                online: true,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
         closeLogin();
@@ -1568,53 +1655,8 @@ async function signup() {
 
         render();
 
-        } catch (error) {
-
+    } catch (error) {
         console.error(error);
-
-        alert(
-            "Account creation failed: " +
-            error.message
-        );
+        alert("Account creation failed: " + error.message);
     }
-}
-
-
-/* =========================
-   DARK MODE
-========================= */
-
-function toggleDarkMode() {
-
-    document.body
-        .classList
-        .toggle("dark");
-}
-
-
-/* =========================
-   START APP
-========================= */
-
-render();
-async function uploadToCloudinary(file) {
-    const formData = new FormData();
-
-    formData.append("file", file);
-    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-    const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`,
-        {
-            method: "POST",
-            body: formData
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error("Cloudinary upload failed");
-    }
-
-    const data = await response.json();
-    return data.secure_url;
 }
