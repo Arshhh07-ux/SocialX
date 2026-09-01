@@ -1373,8 +1373,210 @@ async function logout() {
         .signOut();
 
     currentPage = "home";
+/* =========================
+   LOGIN & SIGN UP
+========================= */
 
-    render();
+function openLogin() {
+    loginModal.classList.remove("hidden");
+}
+
+function closeLogin() {
+    loginModal.classList.add("hidden");
+}
+
+async function login() {
+
+    const input =
+        document.getElementById("loginInput")
+        .value.trim();
+
+    const password =
+        document.getElementById("password")
+        .value;
+
+    if (!input || !password) {
+        alert("Please enter Username or Email and Password.");
+        return;
+    }
+
+    try {
+
+        let email = input;
+
+        /* If username was entered */
+        if (!input.includes("@")) {
+
+            const snapshot =
+                await firebase.firestore()
+                .collection("users")
+                .where(
+                    "usernameLower",
+                    "==",
+                    input.toLowerCase()
+                )
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                alert("Username not found.");
+                return;
+            }
+
+            email =
+                snapshot.docs[0].data().email;
+        }
+
+        await firebase.auth()
+            .signInWithEmailAndPassword(
+                email,
+                password
+            );
+
+        closeLogin();
+
+        document.getElementById("loginInput").value = "";
+        document.getElementById("password").value = "";
+
+        render();
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Login failed: " +
+            error.message
+        );
+    }
+}
+
+
+async function signup() {
+
+    const input =
+        document.getElementById("loginInput")
+        .value.trim();
+
+    const password =
+        document.getElementById("password")
+        .value;
+
+    if (!input || !password) {
+
+        alert(
+            "Please enter Username or Email and Password."
+        );
+
+        return;
+    }
+
+    if (password.length < 6) {
+
+        alert(
+            "Password must be at least 6 characters."
+        );
+
+        return;
+    }
+
+    try {
+
+        let username;
+        let email;
+
+        /* Email entered */
+        if (input.includes("@")) {
+
+            email = input;
+
+            username =
+                input
+                .split("@")[0];
+
+        } else {
+
+            username = input;
+
+            /*
+               Firebase needs an email.
+               We create an internal email
+               from the username.
+            */
+
+            email =
+                authEmail(username);
+        }
+
+        /* Check username already exists */
+
+        const usernameCheck =
+            await firebase.firestore()
+            .collection("users")
+            .where(
+                "usernameLower",
+                "==",
+                username.toLowerCase()
+            )
+            .limit(1)
+            .get();
+
+        if (!usernameCheck.empty) {
+
+            alert("Username already exists.");
+
+            return;
+        }
+
+        const result =
+            await firebase.auth()
+            .createUserWithEmailAndPassword(
+                email,
+                password
+            );
+
+        await firebase.firestore()
+            .collection("users")
+            .doc(result.user.uid)
+            .set({
+
+                username:
+                    username,
+
+                usernameLower:
+                    username.toLowerCase(),
+
+                email:
+                    email,
+
+                online:
+                    true,
+
+                createdAt:
+                    firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+            });
+
+        closeLogin();
+
+        document.getElementById("loginInput").value = "";
+        document.getElementById("password").value = "";
+
+        alert("Account created successfully!");
+
+        render();
+
+        } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Account creation failed: " +
+            error.message
+        );
+    }
 }
 
 
