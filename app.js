@@ -1305,3 +1305,620 @@ function listenTyping() {
 
     const user =
         firebase.auth()
+/* =====================================================
+   SOCIAL X
+   APP.JS - PART 3
+   ===================================================== */
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function goHome() {
+    showHome();
+    loadPosts();
+}
+
+function goExplore() {
+    showExplore();
+}
+
+function goCreate() {
+    showCreate();
+}
+
+function goNotifications() {
+    showNotifications();
+}
+
+function goMessages() {
+    showMessages();
+}
+
+function goProfile() {
+    showProfile();
+}
+
+function goSettings() {
+    showSettings();
+}
+
+
+/* =========================
+   LOGIN / SIGNUP SWITCH
+========================= */
+
+function switchToLogin() {
+
+    const title =
+        document.getElementById("loginTitle");
+
+    const actionButton =
+        document.getElementById("loginAction");
+
+    const switchButton =
+        document.getElementById("switchAuth");
+
+    if (title) {
+        title.textContent = "Login";
+    }
+
+    if (actionButton) {
+        actionButton.textContent = "Login";
+        actionButton.onclick = loginUser;
+    }
+
+    if (switchButton) {
+        switchButton.textContent =
+            "Create a new account";
+
+        switchButton.onclick =
+            switchToSignup;
+    }
+}
+
+
+function switchToSignup() {
+
+    const title =
+        document.getElementById("loginTitle");
+
+    const actionButton =
+        document.getElementById("loginAction");
+
+    const switchButton =
+        document.getElementById("switchAuth");
+
+    if (title) {
+        title.textContent = "Create Account";
+    }
+
+    if (actionButton) {
+        actionButton.textContent = "Sign Up";
+        actionButton.onclick = registerUser;
+    }
+
+    if (switchButton) {
+        switchButton.textContent =
+            "Already have an account? Login";
+
+        switchButton.onclick =
+            switchToLogin;
+    }
+}
+
+
+/* =========================
+   OPEN LOGIN
+========================= */
+
+function openLoginBox() {
+
+    openLogin();
+
+    switchToLogin();
+
+}
+
+
+/* =========================
+   CLOSE ALL MODALS
+========================= */
+
+function closeAllModals() {
+
+    closeLogin();
+    closePost();
+
+}
+
+
+/* =========================
+   CREATE POST BUTTON
+========================= */
+
+function submitPost() {
+
+    createPost();
+
+}
+
+
+/* =========================
+   USER AUTH CHECK
+========================= */
+
+function requireLogin(callback) {
+
+    if (
+        typeof firebase === "undefined" ||
+        !firebase.auth()
+    ) {
+
+        alert("Firebase is not connected.");
+
+        return;
+    }
+
+
+    const user =
+        firebase.auth().currentUser;
+
+
+    if (!user) {
+
+        alert("Please login first.");
+
+        openLoginBox();
+
+        return;
+    }
+
+
+    if (typeof callback === "function") {
+
+        callback();
+
+    }
+
+}
+
+
+/* =========================
+   SAFE NAVIGATION
+========================= */
+
+function navigate(page) {
+
+    switch (page) {
+
+        case "home":
+            goHome();
+            break;
+
+        case "explore":
+            goExplore();
+            break;
+
+        case "create":
+
+            requireLogin(() => {
+                goCreate();
+            });
+
+            break;
+
+        case "notifications":
+
+            requireLogin(() => {
+                goNotifications();
+            });
+
+            break;
+
+        case "messages":
+
+            requireLogin(() => {
+                goMessages();
+            });
+
+            break;
+
+        case "profile":
+
+            requireLogin(() => {
+                goProfile();
+            });
+
+            break;
+
+        case "settings":
+
+            requireLogin(() => {
+                goSettings();
+            });
+
+            break;
+
+        default:
+            goHome();
+
+    }
+
+}
+
+
+/* =========================
+   CONNECT NAVIGATION BUTTONS
+========================= */
+
+function connectNavigation() {
+
+    const homeButtons =
+        document.querySelectorAll(
+            '[data-page="home"]'
+        );
+
+    homeButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("home");
+        };
+
+    });
+
+
+    const exploreButtons =
+        document.querySelectorAll(
+            '[data-page="explore"]'
+        );
+
+    exploreButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("explore");
+        };
+
+    });
+
+
+    const createButtons =
+        document.querySelectorAll(
+            '[data-page="create"]'
+        );
+
+    createButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("create");
+        };
+
+    });
+
+
+    const notificationButtons =
+        document.querySelectorAll(
+            '[data-page="notifications"]'
+        );
+
+    notificationButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("notifications");
+        };
+
+    });
+
+
+    const messageButtons =
+        document.querySelectorAll(
+            '[data-page="messages"]'
+        );
+
+    messageButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("messages");
+        };
+
+    });
+
+
+    const profileButtons =
+        document.querySelectorAll(
+            '[data-page="profile"]'
+        );
+
+    profileButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("profile");
+        };
+
+    });
+
+
+    const settingsButtons =
+        document.querySelectorAll(
+            '[data-page="settings"]'
+        );
+
+    settingsButtons.forEach((button) => {
+
+        button.onclick = () => {
+            navigate("settings");
+        };
+
+    });
+
+}
+
+
+/* =========================
+   GLOBAL BUTTON HANDLER
+========================= */
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        const button =
+            event.target.closest("button");
+
+        if (!button) {
+            return;
+        }
+
+
+        /* Login */
+
+        if (
+            button.dataset.action === "login"
+        ) {
+
+            openLoginBox();
+
+        }
+
+
+        /* Create */
+
+        if (
+            button.dataset.action === "create"
+        ) {
+
+            requireLogin(() => {
+                openPost();
+            });
+
+        }
+
+
+        /* Logout */
+
+        if (
+            button.dataset.action === "logout"
+        ) {
+
+            logout();
+
+        }
+
+    }
+);
+
+
+/* =========================
+   MODAL BACKDROP CLOSE
+========================= */
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            event.target === loginModal
+        ) {
+
+            closeLogin();
+
+        }
+
+
+        if (
+            event.target === postModal
+        ) {
+
+            closePost();
+
+        }
+
+    }
+);
+
+
+/* =========================
+   ESC KEY
+========================= */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (event.key === "Escape") {
+
+            closeAllModals();
+
+        }
+
+    }
+);
+
+
+/* =========================
+   FIREBASE READY
+========================= */
+
+function initializeSocialX() {
+
+    console.log(
+        "Social X initialized successfully 🚀"
+    );
+
+
+    connectNavigation();
+
+
+    if (
+        typeof firebase !== "undefined"
+    ) {
+
+        firebase.auth()
+            .onAuthStateChanged((user) => {
+
+                if (user) {
+
+                    console.log(
+                        "Social X user:",
+                        user.uid
+                    );
+
+                    showHome();
+
+                    setTimeout(() => {
+                        loadPosts();
+                    }, 100);
+
+                }
+
+            });
+
+    }
+
+}
+
+
+/* =========================
+   PAGE LOAD
+========================= */
+
+if (
+    document.readyState === "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializeSocialX
+    );
+
+} else {
+
+    initializeSocialX();
+
+}
+
+
+/* =========================
+   GLOBAL FUNCTIONS
+========================= */
+
+window.openLogin =
+    openLogin;
+
+window.closeLogin =
+    closeLogin;
+
+window.openPost =
+    openPost;
+
+window.closePost =
+    closePost;
+
+window.loginUser =
+    loginUser;
+
+window.registerUser =
+    registerUser;
+
+window.logout =
+    logout;
+
+window.createPost =
+    createPost;
+
+window.showHome =
+    showHome;
+
+window.showExplore =
+    showExplore;
+
+window.showCreate =
+    showCreate;
+
+window.showNotifications =
+    showNotifications;
+
+window.showMessages =
+    showMessages;
+
+window.showProfile =
+    showProfile;
+
+window.showSettings =
+    showSettings;
+
+window.toggleDarkMode =
+    toggleDarkMode;
+
+window.searchUsers =
+    searchUsers;
+
+window.openChat =
+    openChat;
+
+window.sendMessage =
+    sendMessage;
+
+window.toggleLike =
+    toggleLike;
+
+window.deletePost =
+    deletePost;
+
+window.navigate =
+    navigate;
+
+window.goHome =
+    goHome;
+
+window.goExplore =
+    goExplore;
+
+window.goCreate =
+    goCreate;
+
+window.goNotifications =
+    goNotifications;
+
+window.goMessages =
+    goMessages;
+
+window.goProfile =
+    goProfile;
+
+window.goSettings =
+    goSettings;
+
+window.switchToLogin =
+    switchToLogin;
+
+window.switchToSignup =
+    switchToSignup;
+
+window.submitPost =
+    submitPost;
+
+
+/* =====================================================
+   END OF SOCIAL X APP.JS
+   ===================================================== */
