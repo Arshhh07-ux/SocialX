@@ -241,7 +241,12 @@
 
 
 <!-- APP -->
-<script src="./app.js"></script>
+<script>
+window.onerror = function(message, source, line, col) {
+    alert("JS ERROR: " + message + " | Line: " + line);
+};
+</script>
+    <script src="./app.js"></script>
 
 </body>
 
