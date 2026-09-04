@@ -1917,6 +1917,8 @@ window.switchToSignup =
 
 window.submitPost =
     submitPost;
+   window.openLoginBox =
+    openLoginBox;
 
 
 /* =====================================================
