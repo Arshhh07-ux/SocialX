@@ -3,13 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Social X</title>
 
     <link rel="stylesheet" href="./style.css">
 
-    <!-- Firebase -->
+    <!-- =========================
+         FIREBASE
+    ========================== -->
+
     <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
@@ -25,97 +29,186 @@
 
         firebase.initializeApp(firebaseConfig);
     </script>
+
 </head>
+
 
 <body>
 
-    <header class="topbar">
+<!-- =====================================================
+     TOP BAR
+===================================================== -->
 
-        <div class="logo">
-            Social<span>X</span>
-        </div>
+<header class="topbar">
 
-        <div class="search">
-            🔍
-            <input
-                id="search"
-                type="text"
-                placeholder="Social Search">
-        </div>
+    <div class="logo"
+         onclick="navigate('home')">
+        Social<span>X</span>
+    </div>
+
+
+    <div class="search">
+
+        🔍
+
+        <input
+            id="search"
+            type="text"
+            placeholder="Search Social X...">
+
+    </div>
+
+
+    <button
+        id="darkMode"
+        class="topIcon"
+        type="button"
+        onclick="toggleDarkMode()">
+
+        🌙
+
+    </button>
+
+</header>
+
+
+<!-- =====================================================
+     MAIN LAYOUT
+===================================================== -->
+
+<div class="layout">
+
+
+    <!-- =========================
+         LEFT SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar">
+
 
         <button
-            id="darkMode"
-            class="topIcon"
-            onclick="toggleDarkMode()">
-            🌕
+            class="menu active"
+            type="button"
+            data-page="home">
+
+            <span class="menuIcon">🏠</span>
+            <span>Home</span>
+
         </button>
 
-    </header>
+
+        <button
+            class="menu"
+            type="button"
+            data-page="explore">
+
+            <span class="menuIcon">🔎</span>
+            <span>Explore</span>
+
+        </button>
 
 
-    <div class="layout">
+        <button
+            class="menu"
+            type="button"
+            data-page="create">
 
-        <!-- LEFT MENU -->
+            <span class="menuIcon">➕</span>
+            <span>Create</span>
 
-        <aside class="sidebar">
+        </button>
 
-            <button class="menu active" data-page="home">
-                🏠 <span>Home</span>
+
+        <button
+            class="menu"
+            type="button"
+            data-page="notifications">
+
+            <span class="menuIcon">🔔</span>
+            <span>Notifications</span>
+
+        </button>
+
+
+        <button
+            class="menu"
+            type="button"
+            data-page="messages">
+
+            <span class="menuIcon">💬</span>
+            <span>Messages</span>
+
+        </button>
+
+
+        <button
+            class="menu"
+            type="button"
+            data-page="profile">
+
+            <span class="menuIcon">👤</span>
+            <span>Profile</span>
+
+        </button>
+
+
+        <button
+            class="menu"
+            type="button"
+            data-page="settings">
+
+            <span class="menuIcon">⚙️</span>
+            <span>Settings</span>
+
+        </button>
+
+
+        <div class="sidebarBottom">
+
+            <button
+                class="menu loginMenu"
+                type="button"
+                data-action="login">
+
+                <span class="menuIcon">🔐</span>
+                <span>Login</span>
+
             </button>
 
-            <button class="menu" data-page="explore">
-                🔎 <span>Explore</span>
-            </button>
+        </div>
 
-            <button class="menu" data-page="create">
-                ➕ <span>Create</span>
-            </button>
-
-            <button class="menu" data-page="notifications">
-                🔔 <span>Notifications</span>
-            </button>
-
-            <button class="menu" data-page="messages">
-                💬 <span>Messages</span>
-            </button>
-
-            <button class="menu" data-page="profile">
-                👤 <span>Profile</span>
-            </button>
-
-            <button class="menu" data-page="settings">
-                ⚙️ <span>Settings</span>
-            </button>
-
-        </aside>
+    </aside>
 
 
-        <!-- MAIN -->
+    <!-- =========================
+         MAIN CONTENT
+    ========================== -->
 
-        <main id="content"></main>
+    <main id="content">
 
+        <div class="page">
 
-        <!-- RIGHT -->
+            <h1>Welcome to Social X 👋</h1>
 
-        <aside class="right">
-
-            <div class="card emptyRight">
+            <div class="card">
 
                 <div class="bigLogo">
                     X
                 </div>
 
                 <h2>
-                    Welcome to Social X
+                    Something Big. ✨
                 </h2>
 
                 <p>
-                    Something Big. ✨
+                    Connect, share and chat on Social X.
                 </p>
+
 
                 <button
                     class="primary"
-                    onclick="openLogin()">
+                    type="button"
+                    onclick="openLoginBox()">
 
                     🔐 Login / Sign Up
 
@@ -123,130 +216,248 @@
 
             </div>
 
-        </aside>
+        </div>
 
-    </div>
+    </main>
 
 
-    <!-- LOGIN -->
+    <!-- =========================
+         RIGHT SIDEBAR
+    ========================== -->
 
-    <div
-        id="loginModal"
-        class="modal hidden">
+    <aside class="right">
 
-        <div class="modalBox">
-
-            <button
-                class="close"
-                onclick="closeLogin()">
-
-                ×
-
-            </button>
+        <div class="card emptyRight">
 
             <div class="bigLogo">
                 X
             </div>
 
             <h2>
-                Welcome to Social X 👋
+                Social X
             </h2>
 
+            <p>
+                Something Big. ✨
+            </p>
 
-            <input
-    id="loginInput"
-    type="text"
-    placeholder="👤 Username or Email"
-    autocomplete="username">
-
-<input
-    id="password"
-    type="password"
-    placeholder="🔑 Password"
-    autocomplete="current-password">
+            <p>
+                Share your world.
+            </p>
 
 
             <button
                 class="primary full"
-                onclick="login()">
+                type="button"
+                onclick="openLoginBox()">
 
-                Login
-
-            </button>
-
-
-            <button
-                class="secondary full"
-                onclick="signup()">
-
-                ✨ Create Account
+                🔐 Login / Sign Up
 
             </button>
 
         </div>
 
-    </div>
+    </aside>
+
+</div>
 
 
-    <!-- CREATE POST -->
+<!-- =====================================================
+     LOGIN / SIGNUP MODAL
+===================================================== -->
 
-    <div
-        id="postModal"
-        class="modal hidden">
+<div
+    id="loginModal"
+    class="modal hidden">
 
-        <div class="modalBox">
-
-            <button
-                class="close"
-                onclick="closePost()">
-
-                ×
-
-            </button>
-
-            <h2>
-                ➕ Create Post
-            </h2>
+    <div class="modalBox">
 
 
-            <textarea
-                id="postText"
-                placeholder="What's on your mind?">
-            </textarea>
+        <button
+            class="close"
+            type="button"
+            onclick="closeLogin()">
+
+            ×
+
+        </button>
 
 
-            <input
-                id="location"
-                type="text"
-                placeholder="🌏 Add location">
-
-
-            <input
-                id="hashtags"
-                type="text"
-                placeholder="# Hashtags">
-
-
-            <button
-                class="primary full"
-                onclick="createPost()">
-
-                🚀 Post
-
-            </button>
-
+        <div class="bigLogo">
+            X
         </div>
 
+
+        <h2 id="loginTitle">
+            Login
+        </h2>
+
+
+        <p>
+            Welcome back to Social X 👋
+        </p>
+
+
+        <!-- USERNAME -->
+
+        <input
+            id="username"
+            type="text"
+            placeholder="👤 Username"
+            autocomplete="username">
+
+
+        <!-- PASSWORD -->
+
+        <input
+            id="password"
+            type="password"
+            placeholder="🔑 Password"
+            autocomplete="current-password">
+
+
+        <!-- LOGIN -->
+
+        <button
+            id="loginAction"
+            class="primary full"
+            type="button"
+            onclick="loginUser()">
+
+            Login
+
+        </button>
+
+
+        <!-- SWITCH -->
+
+        <button
+            id="switchAuth"
+            class="secondary full"
+            type="button"
+            onclick="switchToSignup()">
+
+            Create a new account
+
+        </button>
+
+
     </div>
 
+</div>
 
-<!-- APP -->
+
+<!-- =====================================================
+     CREATE POST MODAL
+===================================================== -->
+
+<div
+    id="postModal"
+    class="modal hidden">
+
+    <div class="modalBox">
+
+
+        <button
+            class="close"
+            type="button"
+            onclick="closePost()">
+
+            ×
+
+        </button>
+
+
+        <h2>
+            ➕ Create Post
+        </h2>
+
+
+        <p>
+            Share something with Social X.
+        </p>
+
+
+        <!-- POST TEXT -->
+
+        <textarea
+            id="postText"
+            placeholder="What's on your mind?"></textarea>
+
+
+        <!-- IMAGE -->
+
+        <input
+            id="postImage"
+            type="file"
+            accept="image/*">
+
+
+        <!-- LOCATION -->
+
+        <input
+            id="location"
+            type="text"
+            placeholder="🌏 Add location">
+
+
+        <!-- HASHTAGS -->
+
+        <input
+            id="hashtags"
+            type="text"
+            placeholder="# Hashtags">
+
+
+        <!-- POST -->
+
+        <button
+            class="primary full"
+            type="button"
+            onclick="createPost()">
+
+            🚀 Post
+
+        </button>
+
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     JAVASCRIPT ERROR DISPLAY
+===================================================== -->
+
 <script>
-window.onerror = function(message, source, line, col) {
-    alert("JS ERROR: " + message + " | Line: " + line);
+
+window.onerror = function (
+    message,
+    source,
+    line,
+    column
+) {
+
+    console.error(
+        "Social X Error:",
+        message,
+        source,
+        line,
+        column
+    );
+
 };
+
 </script>
-    <script src="./app.js"></script>
+
+
+<!-- =====================================================
+     SOCIAL X APP
+===================================================== -->
+
+<script src="./app.js"></script>
+
 
 </body>
 
