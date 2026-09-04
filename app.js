@@ -1,3 +1,4 @@
+alert("Social X JavaScript Loaded");
 const CLOUDINARY_CLOUD_NAME = "Wahohh6w";
 const CLOUDINARY_UPLOAD_PRESET = "socialx";
 /* =====================================================
