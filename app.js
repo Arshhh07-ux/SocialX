@@ -1,5 +1,266 @@
 /* =====================================================
    SOCIAL X
+   APP.JS - PART 1
+   ===================================================== */
+
+const CLOUDINARY_CLOUD_NAME = "Wahohh6w";
+const CLOUDINARY_UPLOAD_PRESET = "socialx";
+
+let currentPage = "home";
+let currentChatUser = null;
+let unsubscribeMessages = null;
+let unsubscribeTyping = null;
+let typingTimer = null;
+
+/* =========================
+   MAIN ELEMENTS
+========================= */
+
+const content = document.getElementById("content");
+const loginModal = document.getElementById("loginModal");
+const postModal = document.getElementById("postModal");
+
+/* =========================
+   HELPERS
+========================= */
+
+function clean(text) {
+    const div = document.createElement("div");
+    div.textContent = text || "";
+    return div.innerHTML;
+}
+
+function authEmail(username) {
+    return username.toLowerCase() + "@socialx.local";
+}
+
+function chatId(a, b) {
+    return [a, b].sort().join("_");
+}
+
+/* =========================
+   LOGIN MODAL
+========================= */
+
+function openLogin() {
+    if (loginModal) {
+        loginModal.classList.remove("hidden");
+    }
+}
+
+function closeLogin() {
+    if (loginModal) {
+        loginModal.classList.add("hidden");
+    }
+}
+
+/* =========================
+   POST MODAL
+========================= */
+
+function openPost() {
+    if (postModal) {
+        postModal.classList.remove("hidden");
+    }
+}
+
+function closePost() {
+    if (postModal) {
+        postModal.classList.add("hidden");
+    }
+}
+
+/* =========================
+   DARK MODE
+========================= */
+
+function toggleDarkMode() {
+    document.body.classList.toggle("dark");
+}
+
+/* =========================
+   HOME
+========================= */
+
+function showHome() {
+
+    currentPage = "home";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Home</h1>
+
+            <div id="posts">
+                <div class="card">
+                    <h3>Welcome to Social X 👋</h3>
+                    <p>No posts yet.</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/* =========================
+   EXPLORE
+========================= */
+
+function showExplore() {
+
+    currentPage = "explore";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Explore 🔎</h1>
+
+            <div class="card">
+                <p>Search and discover people on Social X.</p>
+
+                <input
+                    id="exploreSearch"
+                    type="text"
+                    placeholder="Search users..."
+                >
+
+                <button
+                    class="primary"
+                    onclick="searchUsers()">
+                    Search
+                </button>
+
+                <div id="searchResults"></div>
+            </div>
+        </div>
+    `;
+}
+
+/* =========================
+   CREATE
+========================= */
+
+function showCreate() {
+
+    currentPage = "create";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Create Post ➕</h1>
+
+            <button
+                class="primary"
+                onclick="openPost()">
+                Create a Post
+            </button>
+        </div>
+    `;
+}
+
+/* =========================
+   NOTIFICATIONS
+========================= */
+
+function showNotifications() {
+
+    currentPage = "notifications";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Notifications 🔔</h1>
+
+            <div class="card">
+                <p>No notifications yet.</p>
+            </div>
+        </div>
+    `;
+}
+
+/* =========================
+   MESSAGES
+========================= */
+
+function showMessages() {
+
+    currentPage = "messages";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Messages 💬</h1>
+
+            <div class="card">
+                <p>No conversations yet.</p>
+            </div>
+        </div>
+    `;
+}
+
+/* =========================
+   PROFILE
+========================= */
+
+function showProfile() {
+
+    currentPage = "profile";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Profile 👤</h1>
+
+            <div class="card">
+                <div class="bigLogo">X</div>
+
+                <h2>Social X User</h2>
+
+                <p>Your profile will appear here.</p>
+            </div>
+        </div>
+    `;
+}
+
+/* =========================
+   SETTINGS
+========================= */
+
+function showSettings() {
+
+    currentPage = "settings";
+
+    if (!content) return;
+
+    content.innerHTML = `
+        <div class="page">
+            <h1>Settings ⚙️</h1>
+
+            <div class="card">
+                <button
+                    class="secondary"
+                    onclick="toggleDarkMode()">
+                    🌙 Toggle Dark Mode
+                </button>
+
+                <br><br>
+
+                <button
+                    class="primary"
+                    onclick="logout()">
+                    Logout
+                </button>
+            </div>
+        </div>
+    `;
+}
+/* =====================================================
+   SOCIAL X
    APP.JS - PART 2
    ===================================================== */
 
